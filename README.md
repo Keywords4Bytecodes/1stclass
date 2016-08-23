@@ -20,3 +20,8 @@ Getting the data
 ----------------
 
 TBA
+
+License
+-------
+
+Licensed under the same license as Weka, its core dependency (GPL v2).

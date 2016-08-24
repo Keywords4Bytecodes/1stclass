@@ -27,6 +27,7 @@ public class RandomForestSystem implements FirstClassSystem {
     private TermVocabulary vocab;
 
     private int seqLength;
+    private int numTrees;
 
     private Map<String, Integer> attToPos = null;
 
@@ -85,8 +86,9 @@ public class RandomForestSystem implements FirstClassSystem {
         return result;
     }
 
-    public RandomForestSystem(int seqLength) {
+    public RandomForestSystem(int seqLength, int numTrees) {
         this.seqLength = seqLength;
+        this.numTrees=numTrees;
     }
 
     public void train(TrainData data, TermVocabulary vocab) throws Exception {
@@ -106,7 +108,7 @@ public class RandomForestSystem implements FirstClassSystem {
         frf = new FastRandomForest();
         frf.setSeed(1993);
         // frf.setNumThreads(1);
-        frf.setNumTrees(250);
+        frf.setNumTrees(numTrees);
         frf.buildClassifier(trainset);
     }
 

@@ -209,7 +209,7 @@ public class Experiment {
                     if (i != f)
                         foldTrain.addAll(foldData[i]);
 
-                system.train(TrainData.from(trainData), vocab);
+                system.train(TrainData.from(foldTrain), vocab);
 
                 for (Object o : foldData[f]) {
                     @SuppressWarnings("rawtypes")

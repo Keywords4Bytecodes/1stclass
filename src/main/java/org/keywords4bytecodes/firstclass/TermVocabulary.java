@@ -21,6 +21,9 @@ public class TermVocabulary implements Serializable {
     private Map<String, Integer> termToPos;
     private String[] posToTerm;
 
+    private TermVocabulary() {
+    }
+
     public TermVocabulary(String[] terms) {
         posToTerm = new String[terms.length + 2];
         posToTerm[0] = OTHER;
@@ -29,6 +32,17 @@ public class TermVocabulary implements Serializable {
         termToPos = new HashMap<>();
         for (int i = 0; i < posToTerm.length; i++)
             termToPos.put(posToTerm[i], i);
+    }
+
+    public static TermVocabulary singleTerm(String term) {
+        TermVocabulary result = new TermVocabulary();
+        result.posToTerm = new String[2];
+        result.posToTerm[0] = OTHER;
+        result.posToTerm[1] = term;
+        result.termToPos = new HashMap<>();
+        for (int i = 0; i < result.posToTerm.length; i++)
+            result.termToPos.put(result.posToTerm[i], i);
+        return result;
     }
 
     public int termToPos(String term) {

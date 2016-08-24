@@ -18,7 +18,7 @@ import org.keywords4bytecodes.firstclass.extract.BytecodeData;
 
 public class VocabularyInducer {
 
-    public static final int TRAILS = 10;
+    public static final int TRAILS = 3;
     public static final int FOLDS = 2;
 
     public static TermVocabulary induce(List<BytecodeData> rawData, FirstClassSystem system, double threshold,
@@ -50,13 +50,15 @@ public class VocabularyInducer {
 
         Random random = new Random(1993);
         Set<String> goodTerms = new HashSet<String>();
+        int kept = 0;
+        int dropped = 0;
         for (String term : toConsider) {
             if (verbose)
                 System.out.println("Term: " + term);
             boolean good = true;
             int counts = termCounts.get(term).get();
             for (int t = 0; t < TRAILS; t++) {
-                TermVocabulary vocab = new TermVocabulary(new String[] { term });
+                TermVocabulary vocab = TermVocabulary.singleTerm(term);
                 Experiment exp = new Experiment(system, vocab);
                 List<Pair<String, BytecodeData.MethodData>> shuffled = data.data();
                 Collections.shuffle(shuffled, random);
@@ -65,7 +67,7 @@ public class VocabularyInducer {
                     if (p.getKey().equals(term))
                         exp.addData(term, p.getValue(), Experiment.DataType.BOTH);
                     else if (otherAdded < counts) {
-                        exp.addData("OTHER", p.getValue(), Experiment.DataType.BOTH);
+                        exp.addData(TermVocabulary.OTHER, p.getValue(), Experiment.DataType.BOTH);
                         otherAdded++;
                     }
                 }
@@ -82,11 +84,13 @@ public class VocabularyInducer {
                 }
             }
             if (good) {
+                kept++;
                 goodTerms.add(term);
                 if (verbose)
-                    System.out.println("Good: " + term);
+                    System.out.println("Good: " + term + " (kept " + kept + " dropped " + dropped + ")");
             } else if (verbose) {
-                System.out.println("Not good: " + term);
+                dropped++;
+                System.out.println("Not good: " + term + " (kept " + kept + " dropped " + dropped + ")");
 
             }
         }
@@ -102,7 +106,7 @@ public class VocabularyInducer {
         List<BytecodeData> rawData = Experiment.loadFolder(new File(args[0]));
         System.out.println("Loaded " + rawData.size() + " classes");
 
-        TermVocabulary vocab = VocabularyInducer.induce(rawData, new RandomForestSystem(29), 0.5, 1000, true);
+        TermVocabulary vocab = VocabularyInducer.induce(rawData, new RandomForestSystem(29, 100), 0.5, 1000, true);
 
         for (String term : vocab.terms())
             System.out.println(term);

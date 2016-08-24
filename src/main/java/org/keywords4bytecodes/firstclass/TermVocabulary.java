@@ -61,6 +61,8 @@ public class TermVocabulary implements Serializable {
             return null;
         if (!result.matches(".*[a-z].*"))
             return null;
+        if (result.indexOf('$') >= 0)
+            return null;
         return result;
     }
 

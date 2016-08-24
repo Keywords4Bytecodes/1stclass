@@ -226,16 +226,23 @@ public class Experiment {
 
     public static class Results {
         Map<String, Table> termTable;
+        
+        private Table totalTable;
 
         public static final String TOTAL = "TOTAL";
 
         public Results() {
             this.termTable = new HashMap<String, Table>();
-            termTable.put(TOTAL, new Table());
+            this.totalTable = new Table();
+            termTable.put(TOTAL, this.totalTable);
         }
 
         public Table totals() {
             return termTable.get(TOTAL);
+        }
+        
+        public Table tableFor(String term) {
+            return termTable.get(term);
         }
 
         public void tally(String target, Map<String, Double> predicted) {
@@ -247,10 +254,13 @@ public class Experiment {
             entries.sort(Map.Entry.<String, Double> comparingByValue());
             String confusor = entries.get(entries.size() - 1).getKey();
 
-            if (target.equals(confusor))
+            if (target.equals(confusor)){
                 targetTable.tp++;
-            else {
+                totalTable.tp++;
+            }else {
                 targetTable.fn++;
+                totalTable.fn++;
+                totalTable.fp++;
 
                 if (!termTable.containsKey(confusor))
                     termTable.put(confusor, new Table());
@@ -290,5 +300,4 @@ public class Experiment {
             return (2.0 * prec * rec / (prec + rec));
         }
     }
-
 }

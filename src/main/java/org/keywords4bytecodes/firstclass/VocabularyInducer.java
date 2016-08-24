@@ -3,6 +3,7 @@ package org.keywords4bytecodes.firstclass;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.keywords4bytecodes.firstclass.Experiment.Table;
 import org.keywords4bytecodes.firstclass.extract.BytecodeData;
 
 public class VocabularyInducer {
@@ -67,9 +69,14 @@ public class VocabularyInducer {
                         otherAdded++;
                     }
                 }
-                System.out.println("\tExperiment on " + exp.getTrainData().size());
+                if (verbose)
+                    System.out.println("\tExperiment on " + exp.getTrainData().size() + " " + (new Date()));
                 Experiment.Results results = exp.crossValidate(FOLDS, random);
-                if (results.totals().f1() < threshold) {
+                Table table = results.tableFor(term);
+                if (verbose)
+                    System.out.println("\t\t " + table.f1() + " " + table.precision() + " " + table.recall() + " "
+                            + (new Date()));
+                if (table.f1() < threshold) {
                     good = false;
                     break;
                 }

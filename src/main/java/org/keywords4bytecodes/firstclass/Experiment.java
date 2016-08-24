@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -52,12 +53,21 @@ public class Experiment {
         if (_type == DataType.TEST || _type == DataType.BOTH)
             this.testData.add(Pair.of(term, data));
     }
+    
+    public List<Pair<String, BytecodeData.MethodData>> getTrainData() {
+        return trainData;
+    }
+    
+    public List<Pair<String, BytecodeData.MethodData>> getTestData() {
+        return testData;
+    }
+    
 
     public void addData(File f, DataType _type) throws IOException {
         addData(new TrainData(loadFile(f), vocab), _type);
     }
 
-    public List<BytecodeData> loadFile(File f) throws IOException {
+    public static List<BytecodeData> loadFile(File f) throws IOException {
         if (f.isDirectory())
             return loadFolder(f);
         else if (f.getName().endsWith(".jar"))
@@ -68,7 +78,7 @@ public class Experiment {
         return Collections.emptyList();
     }
 
-    private List<BytecodeData> loadFolder(File folder) throws IOException {
+    public static List<BytecodeData> loadFolder(File folder) throws IOException {
         List<BytecodeData> all = new ArrayList<>();
 
         for (File f : folder.listFiles())
@@ -78,7 +88,7 @@ public class Experiment {
         return all;
     }
 
-    private List<BytecodeData> loadJar(File f) throws IOException {
+    public static List<BytecodeData> loadJar(File f) throws IOException {
         List<BytecodeData> all = new ArrayList<>();
         ZipInputStream zip = new ZipInputStream(new FileInputStream(f));
 
@@ -106,7 +116,7 @@ public class Experiment {
         return all;
     }
 
-    private List<BytecodeData> loadClass(File f) throws IOException {
+    public static List<BytecodeData> loadClass(File f) throws IOException {
         return BytecodeToSequence.extract(f);
     }
 
@@ -114,7 +124,7 @@ public class Experiment {
         addData(new TrainData(loadObfuscatedFiles(clearFile, obfuscatedFile), vocab), _type);
     }
 
-    public List<BytecodeData> loadObfuscatedFiles(File clearFile, File obfuscatedFile) throws IOException {
+    public static List<BytecodeData> loadObfuscatedFiles(File clearFile, File obfuscatedFile) throws IOException {
         List<BytecodeData> clearData = null;
         List<BytecodeData> obfuscatedData = null;
         if (clearFile.isDirectory() || clearFile.isDirectory()) {
@@ -156,15 +166,62 @@ public class Experiment {
     }
 
     public void train() {
-
+        try {
+            system.train(TrainData.from(trainData), vocab);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public Results test() {
-        return null;
+
+        Results results = new Results();
+        try {
+            for (Pair<String, BytecodeData.MethodData> p : testData)
+                results.tally(p.getKey(), system.predict(p.getValue()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return results;
     }
 
-    public Results crossValidate(int folds) {
-        return null;
+    @SuppressWarnings("unchecked")
+    public Results crossValidate(int folds, Random random) {
+        Results results = new Results();
+        try {
+
+            @SuppressWarnings("rawtypes")
+            List[] foldData = new List[folds];
+            for (int i = 0; i < folds; i++)
+                foldData[i] = new ArrayList<Pair<String, BytecodeData.MethodData>>();
+
+            List<Pair<String, BytecodeData.MethodData>> shuffled = trainData;
+            Collections.shuffle(shuffled, random); // shuffle train data in place
+
+            for (int i = 0; i < shuffled.size(); i++)
+                foldData[i % folds].add(shuffled.get(i));
+
+            for (int f = 0; f < folds; f++) {
+                system.reset();
+                List<Pair<String, BytecodeData.MethodData>> foldTrain = new ArrayList<>();
+                for (int i = 0; i < folds; i++)
+                    if (i != f)
+                        foldTrain.addAll(foldData[i]);
+
+                system.train(TrainData.from(trainData), vocab);
+
+                for (Object o : foldData[f]) {
+                    @SuppressWarnings("rawtypes")
+                    Pair<String, BytecodeData.MethodData> p = (Pair) o;
+                    results.tally(p.getKey(), system.predict(p.getValue()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return results;
     }
 
     public static class Results {
@@ -172,31 +229,65 @@ public class Experiment {
 
         public static final String TOTAL = "TOTAL";
 
+        public Results() {
+            this.termTable = new HashMap<String, Table>();
+            termTable.put(TOTAL, new Table());
+        }
+
         public Table totals() {
             return termTable.get(TOTAL);
+        }
+
+        public void tally(String target, Map<String, Double> predicted) {
+            if (!termTable.containsKey(target))
+                termTable.put(target, new Table());
+            Table targetTable = termTable.get(target);
+            List<Map.Entry<String, Double>> entries = new ArrayList<>(predicted.size());
+            entries.addAll(predicted.entrySet());
+            entries.sort(Map.Entry.<String, Double> comparingByValue());
+            String confusor = entries.get(entries.size() - 1).getKey();
+
+            if (target.equals(confusor))
+                targetTable.tp++;
+            else {
+                targetTable.fn++;
+
+                if (!termTable.containsKey(confusor))
+                    termTable.put(confusor, new Table());
+                Table confusorTable = termTable.get(confusor);
+                confusorTable.fp++;
+            }
+
+            // TODO rec@N
         }
     }
 
     public static class Table {
-        int tp, fp, fn, tn;
+        int tp, fp, fn;
 
-        public Table(int tp, int fp, int fn, int tn) {
+        public Table() {
+            tp = fp = fn = 0;
+        }
+
+        public Table(int tp, int fp, int fn) {
             this.tp = tp;
             this.fp = fp;
             this.fn = fn;
-            this.tn = tn;
         }
 
         public double precision() {
-            return 0.0; // TODO
+
+            return 1.0 * tp / (tp + fp);
         }
 
         public double recall() {
-            return 0.0; // TODO
+            return 1.0 * tp / (tp + fn);
         }
 
         public double f1() {
-            return 0.0; // TODO
+            double prec = precision();
+            double rec = recall();
+            return (2.0 * prec * rec / (prec + rec));
         }
     }
 

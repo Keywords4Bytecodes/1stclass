@@ -1,7 +1,9 @@
 package org.keywords4bytecodes.firstclass;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TermVocabulary implements Serializable {
@@ -60,6 +62,10 @@ public class TermVocabulary implements Serializable {
         if (!result.matches(".*[a-z].*"))
             return null;
         return result;
+    }
+
+    public List<String> terms() {
+        return Arrays.asList(posToTerm);
     }
 
 }

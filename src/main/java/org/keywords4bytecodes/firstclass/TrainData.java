@@ -14,8 +14,17 @@ public class TrainData {
 
     private List<Pair<String, BytecodeData.MethodData>> data;
 
+    private TrainData() {
+    }
+
     public TrainData(List<BytecodeData> data) {
         this(data, null);
+    }
+
+    public static TrainData from(List<Pair<String, BytecodeData.MethodData>> data) {
+        TrainData result = new TrainData();
+        result.data = data;
+        return result;
     }
 
     public TrainData(List<BytecodeData> data, TermVocabulary vocab) {

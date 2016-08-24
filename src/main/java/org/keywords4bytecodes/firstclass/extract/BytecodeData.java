@@ -31,6 +31,7 @@ public class BytecodeData {
         // we do not use LABEL nor LOCAL_VARIABLE as they are usually scrubbed in obfuscation
 
         public static final int TRY_CATCH = 250;
+        public static final int PADDING = 251;
 
         private byte[] extOpcodeSeq;
 

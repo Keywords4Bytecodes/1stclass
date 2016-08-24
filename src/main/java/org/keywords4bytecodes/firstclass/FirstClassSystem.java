@@ -8,12 +8,14 @@ import org.keywords4bytecodes.firstclass.extract.BytecodeData;
 
 public interface FirstClassSystem extends Serializable {
 
-    public void train(TrainData data, TermVocabulary vocab);
+    public void train(TrainData data, TermVocabulary vocab) throws Exception;
 
-    public Map<String, Double> predict(BytecodeData.MethodData method);
+    public Map<String, Double> predict(BytecodeData.MethodData method) throws Exception;
 
     public List<String> terms();
 
     public TermVocabulary vocab();
+
+    public void reset();
 
 }

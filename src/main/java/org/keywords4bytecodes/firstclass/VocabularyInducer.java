@@ -1,5 +1,7 @@
 package org.keywords4bytecodes.firstclass;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,7 +60,7 @@ public class VocabularyInducer {
                         otherAdded++;
                     }
                 }
-                Experiment.Results results = exp.crossValidate(FOLDS);
+                Experiment.Results results = exp.crossValidate(FOLDS, random);
                 if (results.totals().f1() < threshold) {
                     good = false;
                     break;
@@ -72,5 +74,16 @@ public class VocabularyInducer {
             System.out.println("Found " + goodTerms + " at F1 threshold " + threshold);
 
         return new TermVocabulary(goodTerms.toArray(new String[0]));
+    }
+
+    public static void main(String[] args) throws IOException {
+        System.out.println("Loading...");
+        List<BytecodeData> rawData = Experiment.loadFolder(new File(args[0]));
+        System.out.println("Loaded " + rawData.size() + " classes");
+        
+        TermVocabulary vocab = VocabularyInducer.induce(rawData, new RandomForestSystem(29), 0.5, 5000, true);
+
+        for (String term : vocab.terms())
+            System.out.println(term);
     }
 }

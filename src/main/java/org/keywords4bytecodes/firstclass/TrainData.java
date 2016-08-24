@@ -54,10 +54,15 @@ public class TrainData {
                 boolean first = true;
                 for (BytecodeData.MethodData m : e.getValue())
                     if (first) {
-                        this.data.add(Pair.of(vocab == null ? methodName : vocab.getFirstTerm(methodName), m));
+                        String term = vocab == null ? TermVocabulary.parseFirstTerm(methodName) : vocab
+                                .getFirstTerm(methodName);
+                        if (term == null)
+                            break; // ignore all
+                        this.data.add(Pair.of(term, m));
                         first = false;
                     } else
                         this.data.add(Pair.of(TermVocabulary.WRAPPER, m));
+
             }
         }
     }

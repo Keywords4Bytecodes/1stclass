@@ -153,7 +153,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
 
       for (int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++) {
           
-          System.out.println("Submitting tree: " + treeIdx);
+          //System.out.println("Submitting tree: " + treeIdx);
 
         // create the in-bag dataset (and be sure to remember what's in bag)
         // for computing the out-of-bag error later
@@ -180,7 +180,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
 
       // make sure all trees have been trained before proceeding
       for (int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++) {
-          System.out.println("Finishing tree: " + treeIdx);
+          //System.out.println("Finishing tree: " + treeIdx);
         futures.get(treeIdx).get();
 
       }

@@ -38,17 +38,24 @@ public class VocabularyInducer {
             if (e.getValue().get() >= minCount)
                 toConsider.add(e.getKey());
 
-        if (verbose)
+        if (verbose) {
             System.out.println("Got " + data.data().size() + " methods with " + toConsider.size()
                     + " unique terms at cut point " + minCount);
+            for (String term : toConsider) {
+                System.out.println("\t" + term + ": " + termCounts.get(term));
+            }
+        }
 
         Random random = new Random(1993);
         Set<String> goodTerms = new HashSet<String>();
         for (String term : toConsider) {
+            if (verbose)
+                System.out.println("Term: " + term);
             boolean good = true;
             int counts = termCounts.get(term).get();
             for (int t = 0; t < TRAILS; t++) {
-                Experiment exp = new Experiment(system, null);
+                TermVocabulary vocab = new TermVocabulary(new String[] { term });
+                Experiment exp = new Experiment(system, vocab);
                 List<Pair<String, BytecodeData.MethodData>> shuffled = data.data();
                 Collections.shuffle(shuffled, random);
                 int otherAdded = 0;
@@ -60,14 +67,21 @@ public class VocabularyInducer {
                         otherAdded++;
                     }
                 }
+                System.out.println("\tExperiment on " + exp.getTrainData().size());
                 Experiment.Results results = exp.crossValidate(FOLDS, random);
                 if (results.totals().f1() < threshold) {
                     good = false;
                     break;
                 }
             }
-            if (good)
+            if (good) {
                 goodTerms.add(term);
+                if (verbose)
+                    System.out.println("Good: " + term);
+            } else if (verbose) {
+                System.out.println("Not good: " + term);
+
+            }
         }
 
         if (verbose)
@@ -80,8 +94,8 @@ public class VocabularyInducer {
         System.out.println("Loading...");
         List<BytecodeData> rawData = Experiment.loadFolder(new File(args[0]));
         System.out.println("Loaded " + rawData.size() + " classes");
-        
-        TermVocabulary vocab = VocabularyInducer.induce(rawData, new RandomForestSystem(29), 0.5, 5000, true);
+
+        TermVocabulary vocab = VocabularyInducer.induce(rawData, new RandomForestSystem(29), 0.5, 1000, true);
 
         for (String term : vocab.terms())
             System.out.println(term);

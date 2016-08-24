@@ -2,7 +2,10 @@ package org.keywords4bytecodes.firstclass.extract;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassReader;
@@ -15,8 +18,15 @@ import org.objectweb.asm.Opcodes;
 public class BytecodeToSequence {
 
     private static class TheClassVisitor extends ClassVisitor {
+
+        private List<Pair<String, String[]>> opseq = new ArrayList<>();
+
         public TheClassVisitor() {
             super(Opcodes.ASM5);
+        }
+
+        public List<Pair<String, String[]>> getOpSeq() {
+            return opseq;
         }
 
         @Override
@@ -51,15 +61,12 @@ public class BytecodeToSequence {
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            System.out.print(name);
-            return new TheMethodVisitor();
+            return new TheMethodVisitor(name, this);
         }
 
-        @Override
-        public void visitEnd() {
-            System.out.println();
+        public void endMethod(String methodName, List<String> opseq) {
+            this.opseq.add(Pair.of(methodName, opseq.toArray(new String[0])));
         }
-
     }
 
     // private static class TheFieldVisitor extends FieldVisitor {
@@ -69,8 +76,14 @@ public class BytecodeToSequence {
     // }
 
     private static class TheMethodVisitor extends MethodVisitor {
-        public TheMethodVisitor() {
+        private List<String> opseq = new ArrayList<String>();
+        private TheClassVisitor parent;
+        private String methodName;
+
+        public TheMethodVisitor(String methodName, TheClassVisitor parent) {
             super(Opcodes.ASM5);
+            this.parent = parent;
+            this.methodName = methodName;
         }
 
         @Override
@@ -93,89 +106,90 @@ public class BytecodeToSequence {
 
         @Override
         public void visitInsn(int opcode) {
-            System.out.print(" _" + opcode);
+            opseq.add("_" + opcode);
         }
 
         @Override
         public void visitIntInsn(int opcode, int operand) {
-            System.out.print(" I" + opcode);
+            opseq.add("I" + opcode);
         }
 
         @Override
         public void visitVarInsn(int opcode, int var) {
-            System.out.print(" V" + opcode);
+            opseq.add("V" + opcode);
         }
 
         @Override
         public void visitTypeInsn(int opcode, String type) {
-            System.out.print(" T" + opcode);
+            opseq.add("T" + opcode);
         }
 
         @Override
         public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-            System.out.print(" F" + opcode);
+            opseq.add("F" + opcode);
         }
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc) {
-            System.out.print(" M" + opcode);
+            opseq.add("M" + opcode);
         }
 
         @Override
         public void visitJumpInsn(int opcode, Label label) {
-            System.out.print(" J" + opcode);
+            opseq.add("J" + opcode);
         }
 
         @Override
         public void visitLabel(Label label) {
-            System.out.print(" L");
+            opseq.add("L");
         }
 
         @Override
         public void visitLdcInsn(Object cst) {
-            System.out.print(" LDC");
+            opseq.add("LDC");
         }
 
         @Override
         public void visitIincInsn(int var, int increment) {
-            System.out.print(" II");
+            opseq.add("II");
         }
 
         @Override
         public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-            System.out.print(" T");
+            opseq.add("T");
         }
 
         @Override
         public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
-            System.out.print(" LS");
+            opseq.add("LS");
         }
 
         @Override
         public void visitMultiANewArrayInsn(String desc, int dims) {
-            System.out.print(" MA");
+            opseq.add("MA");
         }
 
         @Override
         public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-            System.out.print(" TC");
+            opseq.add("TC");
         }
 
         @Override
         public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
-            System.out.print(" LV");
+            opseq.add("LV");
         }
 
         @Override
         public void visitLineNumber(int line, Label start) {
-            // TODO Auto-generated method stub
-
         }
 
         @Override
         public void visitMaxs(int maxStack, int maxLocals) {
-            // TODO Auto-generated method stub
+        }
 
+        @Override
+        public void visitEnd() {
+            parent.endMethod(methodName, opseq);
         }
     }
 
@@ -191,15 +205,24 @@ public class BytecodeToSequence {
         for (File f : dir.listFiles()) {
             if (!f.getName().startsWith(".") && f.isDirectory())
                 recurse(f);
-            else if (f.getName().endsWith(".class"))
-                dump(f);
+            else if (f.getName().endsWith(".class")) {
+                List<Pair<String, String[]>> opseq = dump(f);
+                for (Pair<String, String[]> p : opseq) {
+                    System.out.print(p.getLeft());
+                    for (String o : p.getRight())
+                        System.out.print(" " + o);
+                    System.out.println();
+                }
+                System.out.println();
+            }
         }
     }
 
-    private static void dump(File f) throws Exception {
+    private static List<Pair<String, String[]>> dump(File f) throws Exception {
         TheClassVisitor v = new TheClassVisitor();
         ClassReader cr = new ClassReader(new FileInputStream(f));
         cr.accept(v, 0);
+        return v.getOpSeq();
     }
 
 }

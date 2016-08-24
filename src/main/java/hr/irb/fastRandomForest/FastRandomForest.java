@@ -618,7 +618,7 @@ public class FastRandomForest
     m_bagger.setClassifier(rTree);
     m_bagger.setSeed(m_randomSeed);
     m_bagger.setNumIterations(m_numTrees);
-    m_bagger.setCalcOutOfBag(true);
+    m_bagger.setCalcOutOfBag(false);
     m_bagger.setComputeImportances( this.getComputeImportances() );
 
     m_bagger.buildClassifier(data, m_NumThreads, this);

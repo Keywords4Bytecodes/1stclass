@@ -4,12 +4,10 @@ import hr.irb.fastRandomForest.FastRandomForest;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,12 +21,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instance;
@@ -51,26 +47,27 @@ public class FastRF {
     private static Map<String, Integer> vocabToPos = null;
     private static int paddingPos = 0;
 
-    private static double SAMPLE_TRAIN = 0.2;
+    private static double SAMPLE_TRAIN = 1.0;
     private static boolean BINARY = false;
-    private static int CLASSIFIERS = 10;
 
-    private static double[] seqToFeats(int[] seq) {
-        double[] v = new double[attToPos.size()];
+    private static double[] seqToFeats(int[] seq, int seqLength, int attSize, int vocabSize, int paddingPos,
+            int lengthPos) {
+        double[] v = new double[attSize];
 
-        for (int s = 0; s < SEQ_LENGTH; s++)
+        for (int s = 0; s < seqLength; s++)
             v[s] = (double) (s < seq.length ? seq[s] : paddingPos);
-        int[] counts = new int[posToVocab.size()];
+        int[] counts = new int[vocabSize];
         for (int op : seq)
             counts[op]++;
         for (int i = 0; i < counts.length; i++)
-            v[SEQ_LENGTH + i] = counts[i];
-        v[attToPos.get("LENGTH")] = seq.length;
+            v[seqLength + i] = counts[i];
+        v[lengthPos] = seq.length;
 
         return v;
     }
 
-    private static List<Pair<String, int[]>> readRawData(String filename) throws FileNotFoundException, IOException {
+    private static List<Pair<String, int[]>> readRawData(String filename, Map<String, Integer> vocabToPos,
+            int paddingPos) throws FileNotFoundException, IOException {
         List<Pair<String, int[]>> rawdata = new ArrayList<>();
 
         BufferedReader br = new BufferedReader(new FileReader(filename));
@@ -242,7 +239,7 @@ public class FastRF {
         // second pass, read data
         List<Pair<String, int[]>> rawdata = new ArrayList<>(useful);
 
-        rawdata = readRawData(args[0]);
+        rawdata = readRawData(args[0], vocabToPos, paddingPos);
 
         // full model
         ArrayList<Attribute> attInfo = new ArrayList<>();
@@ -274,47 +271,46 @@ public class FastRF {
         System.out.println("Row size: " + attInfo.size());
 
         Random sampler = new Random(1993);
-        for (int cn = 0; cn < CLASSIFIERS; cn++) {
 
-            // assemble train set
-            Instances trainset = new Instances(BINARY ? "isNamed" : "Verb", attInfo, useful);
-            trainset.setClassIndex(attInfo.size() - 1);
+        // assemble train set
+        Instances trainset = new Instances(BINARY ? "isNamed" : "Verb", attInfo, useful);
+        trainset.setClassIndex(attInfo.size() - 1);
 
-            for (Pair<String, int[]> p : rawdata) {
-                if (sampler.nextFloat() > SAMPLE_TRAIN)
-                    continue;
+        for (Pair<String, int[]> p : rawdata) {
+            if (sampler.nextFloat() > SAMPLE_TRAIN)
+                continue;
 
-                double[] instV = seqToFeats(p.getRight());
-                if (BINARY)
-                    instV[instV.length - 1] = termToPos.containsKey(p.getLeft()) ? 1.0 : 0.0;
-                else
-                    instV[instV.length - 1] = (double) (termToPos.containsKey(p.getLeft()) ? termToPos.get(p.getLeft())
-                            : otherPos);
+            double[] instV = seqToFeats(p.getRight(), SEQ_LENGTH, attToPos.size(), posToVocab.size(), paddingPos,
+                    attToPos.get("LENGTH"));
+            if (BINARY)
+                instV[instV.length - 1] = termToPos.containsKey(p.getLeft()) ? 1.0 : 0.0;
+            else
+                instV[instV.length - 1] = (double) (termToPos.containsKey(p.getLeft()) ? termToPos.get(p.getLeft())
+                        : otherPos);
 
-                Instance inst = new DenseInstance(1.0, instV);
-                inst.setDataset(trainset);
-                trainset.add(inst);
-            }
-
-            // ArffSaver saver = new ArffSaver();
-            // saver.setFile(new File("/tmp/train" + cn + ".arff"));
-            // saver.setInstances(trainset);
-            // saver.writeBatch();
-
-            System.out.println(new Date() + " about to build classifier for " + trainset.size() + " instances...");
-            FastRandomForest rf = new FastRandomForest();
-            rf.setSeed(1993);
-            // rf.setNumExecutionSlots(1);
-            rf.buildClassifier(trainset);
-
-            ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream("/tmp/rf" + cn
-                    + ".ser.gz")));
-            oos.writeObject(rf);
-            oos.close();
+            Instance inst = new DenseInstance(1.0, instV);
+            inst.setDataset(trainset);
+            trainset.add(inst);
         }
 
+        // ArffSaver saver = new ArffSaver();
+        // saver.setFile(new File("/tmp/train" + cn + ".arff"));
+        // saver.setInstances(trainset);
+        // saver.writeBatch();
+
+        System.out.println(new Date() + " about to build classifier for " + trainset.size() + " instances...");
+        FastRandomForest frf = new FastRandomForest();
+        frf.setSeed(1993);
+        //frf.setNumThreads(1);
+        frf.setNumTrees(250);
+        frf.buildClassifier(trainset);
+
+        ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream("/tmp/frf.ser.gz")));
+        oos.writeObject(frf);
+        oos.close();
+
         rawdata = null;
-        List<Pair<String, int[]>> testdata = readRawData(args[1]);
+        List<Pair<String, int[]>> testdata = readRawData(args[1], vocabToPos, paddingPos);
 
         Instances testset = new Instances(BINARY ? "isNamed" : "Verb", attInfo, testdata.size());
         testset.setClassIndex(attInfo.size() - 1);
@@ -327,83 +323,76 @@ public class FastRF {
         }
 
         double[][] dists = new double[testdata.size()][];
-        for (int cn = 0; cn < CLASSIFIERS; cn++) {
-            System.out.println(new Date() + " about to test classifier on " + testdata.size() + " instances...");
+        System.out.println(new Date() + " about to test classifier on " + testdata.size() + " instances...");
 
-            ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream("/tmp/rf" + cn
-                    + ".ser.gz")));
-            RandomForest rf = (RandomForest) ois.readObject();
-            ois.close();
+        // ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream("/tmp/frf.ser.gz")));
+        // FastRandomForest frf = (FastRandomForest) ois.readObject();
+        // ois.close();
 
-            for (int pIdx = 0; pIdx < testdata.size(); pIdx++) {
-                Pair<String, int[]> p = testdata.get(pIdx);
-                if (cn == 0) {
-                    dists[pIdx] = BINARY ? new double[1] : new double[termToPos.size()];
+        for (int pIdx = 0; pIdx < testdata.size(); pIdx++) {
+            Pair<String, int[]> p = testdata.get(pIdx);
 
-                    double[] instV = seqToFeats(p.getRight());
-                    Instance inst = new DenseInstance(1.0, instV);
-                    inst.setDataset(testset);
-                    if (BINARY) {
-                        String trueClass = termToPos.containsKey(p.getLeft()) ? "named" : "OTHER";
-                        inst.setClassValue(trueClass);
-                    } else {
-                        String trueClass = termToPos.containsKey(p.getLeft()) ? p.getLeft() : OTHER;
-                        inst.setClassValue(trueClass);
-                    }
-                    testset.add(inst);
-                }
+            dists[pIdx] = BINARY ? new double[1] : new double[termToPos.size()];
 
-                Instance inst = testset.get(pIdx);
+            double[] instV = seqToFeats(p.getRight(), SEQ_LENGTH, attToPos.size(), posToVocab.size(), paddingPos,
+                    attToPos.get("LENGTH"));
+            Instance inst = new DenseInstance(1.0, instV);
+            inst.setDataset(testset);
+            if (BINARY) {
+                String trueClass = termToPos.containsKey(p.getLeft()) ? "named" : "OTHER";
+                inst.setClassValue(trueClass);
+            } else {
+                String trueClass = termToPos.containsKey(p.getLeft()) ? p.getLeft() : OTHER;
+                inst.setClassValue(trueClass);
+            }
+            testset.add(inst);
 
-                if (BINARY) {
-                    dists[pIdx][0] += rf.classifyInstance(inst);
-                    if (cn == CLASSIFIERS - 1) {
-                        double clazz = dists[pIdx][0];
-                        if (clazz > CLASSIFIERS / 2.0)
-                            clazz = 1.0;
-                        else
-                            clazz = 0.0;
+            inst = testset.get(pIdx);
 
-                        if (inst.classValue() == 0.0) {
-                            if (clazz == 0.0)
-                                tp++;
-                            else
-                                fn++;
-                        } else {
-                            if (clazz == 0.0)
-                                tn++;
-                            else
-                                fp++;
-                        }
-                    }
+            if (BINARY) {
+                dists[pIdx][0] += frf.classifyInstance(inst);
+                double clazz = dists[pIdx][0];
+                if (clazz > 0.5)
+                    clazz = 1.0;
+                else
+                    clazz = 0.0;
+
+                if (inst.classValue() == 0.0) {
+                    if (clazz == 0.0)
+                        tp++;
+                    else
+                        fn++;
                 } else {
-                    double[] thisDist = rf.distributionForInstance(inst);
-                    for (int j = 0; j < thisDist.length; j++)
-                        dists[pIdx][j] += thisDist[j];
-
-                    if (cn == CLASSIFIERS - 1) {
-
-                        int correct = (int) inst.classValue();
-                        double[] dist = dists[pIdx];
-                        double correctValue = dist[correct];
-                        int biggerThanCorrect = 0;
-                        double better = -1;
-                        int betterIdx = -1;
-                        for (int i = 0; i < dist.length; i++) {
-                            if (dist[i] > better) {
-                                better = dist[i];
-                                betterIdx = i;
-                            }
-                            if (i != correct && dist[i] >= correctValue)
-                                biggerThanCorrect++;
-                        }
-                        confTables[correct][betterIdx]++;
-                        for (int i = biggerThanCorrect; i < termToPos.size(); i++)
-                            recAtThr[correct][i]++;
-                    }
+                    if (clazz == 0.0)
+                        tn++;
+                    else
+                        fp++;
                 }
+            } else {
+                double[] thisDist = frf.distributionForInstance(inst);
+                for (int j = 0; j < thisDist.length; j++)
+                    dists[pIdx][j] += thisDist[j];
+
+                int correct = (int) inst.classValue();
+                double[] dist = dists[pIdx];
+                double correctValue = dist[correct];
+                int biggerThanCorrect = 0;
+                double better = -1;
+                int betterIdx = -1;
+                for (int i = 0; i < dist.length; i++) {
+                    if (dist[i] > better) {
+                        better = dist[i];
+                        betterIdx = i;
+                    }
+                    if (i != correct && dist[i] >= correctValue)
+                        biggerThanCorrect++;
+                }
+                confTables[correct][betterIdx]++;
+                for (int i = biggerThanCorrect; i < termToPos.size(); i++)
+                    recAtThr[correct][i]++;
             }
         }
+
         Saver saver = new ArffSaver();
         saver.setFile(new File("/tmp/test.arff"));
         saver.setInstances(testset);

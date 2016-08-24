@@ -152,13 +152,15 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
     try {
 
       for (int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++) {
+          
+          System.out.println("Submitting tree: " + treeIdx);
 
         // create the in-bag dataset (and be sure to remember what's in bag)
         // for computing the out-of-bag error later
         DataCache bagData = myData.resample(bagSize, random);
         bagData.reusableRandomGenerator = bagData.getRandomNumberGenerator(
           random.nextInt());
-        inBag[treeIdx] = bagData.inBag; // store later for OOB error calculation
+        //inBag[treeIdx] = bagData.inBag; // store later for OOB error calculation
 
         // build the classifier
         if (m_Classifiers[treeIdx] instanceof FastRandomTree) {
@@ -178,6 +180,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
 
       // make sure all trees have been trained before proceeding
       for (int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++) {
+          System.out.println("Finishing tree: " + treeIdx);
         futures.get(treeIdx).get();
 
       }

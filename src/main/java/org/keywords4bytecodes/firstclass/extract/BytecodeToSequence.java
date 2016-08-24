@@ -2,245 +2,322 @@ package org.keywords4bytecodes.firstclass.extract;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class BytecodeToSequence {
 
-	private static class TheClassVisitor extends ClassVisitor {
+    private static class TheClassVisitor extends ClassVisitor {
 
-		private List<Pair<String, String[]>> opseq = new ArrayList<>();
+        private List<BytecodeData> data;
 
-		public TheClassVisitor() {
-			super(Opcodes.ASM5);
-		}
+        private int index;
 
-		public List<Pair<String, String[]>> getOpSeq() {
-			return opseq;
-		}
+        public TheClassVisitor() {
+            super(Opcodes.ASM5);
+            this.data = new ArrayList<>();
+            this.index = -1;
+        }
 
-		@Override
-		public void visit(int version, int access, String name, String signature, String superName,
-				String[] interfaces) {
-		}
+        public List<BytecodeData> getBytecodeData() {
+            return data;
+        }
 
-		@Override
-		public void visitSource(String source, String debug) {
-		}
+        @Override
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+            BytecodeData top = new BytecodeData(name);
+            data.add(top);
+            index++;
+        }
 
-		@Override
-		public void visitOuterClass(String owner, String name, String desc) {
-		}
+        @Override
+        public void visitSource(String source, String debug) {
+        }
 
-		@Override
-		public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-			return null;
-		}
+        @Override
+        public void visitOuterClass(String owner, String name, String desc) {
+        }
 
-		@Override
-		public void visitAttribute(Attribute attr) {
-		}
+        @Override
+        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+            return null;
+        }
 
-		@Override
-		public void visitInnerClass(String name, String outerName, String innerName, int access) {
-		}
+        @Override
+        public void visitAttribute(Attribute attr) {
+        }
 
-		@Override
-		public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-			return null;
-		}
+        @Override
+        public void visitInnerClass(String name, String outerName, String innerName, int access) {
+            // create new bytecodedata?
+        }
 
-		@Override
-		public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-			return new TheMethodVisitor(name, this);
-		}
+        @Override
+        public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+            return null;
+        }
 
-		public void endMethod(String methodName, List<String> opseq) {
-			this.opseq.add(Pair.of(methodName, opseq.toArray(new String[0])));
-		}
-	}
+        @Override
+        public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+            BytecodeData.MethodData methodData = new BytecodeData.MethodData(access, name, desc, signature, exceptions);
+            this.data.get(index).addMethod(methodData);
+            return new TheMethodVisitor(methodData);
+        }
+    }
 
-	// private static class TheFieldVisitor extends FieldVisitor {
-	// public TheFieldVisitor() {
-	// super(Opcodes.ASM5);
-	// }
-	// }
+    // private static class TheFieldVisitor extends FieldVisitor {
+    // public TheFieldVisitor() {
+    // super(Opcodes.ASM5);
+    // }
+    // }
 
-	private static class TheMethodVisitor extends MethodVisitor {
-		private List<String> opseq = new ArrayList<String>();
-		private TheClassVisitor parent;
-		private String methodName;
+    private static class TheMethodVisitor extends MethodVisitor {
+        private List<Integer> opseq = new ArrayList<Integer>();
+        private BytecodeData.MethodData methodData;
 
-		public TheMethodVisitor(String methodName, TheClassVisitor parent) {
-			super(Opcodes.ASM5);
-			this.parent = parent;
-			this.methodName = methodName;
-		}
+        public TheMethodVisitor(BytecodeData.MethodData methodData) {
+            super(Opcodes.ASM5);
+            this.methodData = methodData;
+        }
 
-		@Override
-		public AnnotationVisitor visitAnnotationDefault() {
-			return null;
-		}
+        @Override
+        public AnnotationVisitor visitAnnotationDefault() {
+            return null;
+        }
 
-		@Override
-		public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
-			return null;
-		}
+        @Override
+        public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
+            return null;
+        }
 
-		@Override
-		public void visitCode() {
-		}
+        @Override
+        public void visitCode() {
+        }
 
-		@Override
-		public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		}
+        @Override
+        public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+        }
 
-		@Override
-		public void visitInsn(int opcode) {
-			opseq.add("_ " + opcode);
-		}
+        @Override
+        public void visitInsn(int opcode) {
+            opseq.add(opcode);
+        }
 
-		@Override
-		public void visitIntInsn(int opcode, int operand) {
-			opseq.add("I " + opcode);
-		}
+        @Override
+        public void visitIntInsn(int opcode, int operand) {
+            opseq.add(opcode);
+        }
 
-		@Override
-		public void visitVarInsn(int opcode, int var) {
-			opseq.add("V " + opcode);
-		}
+        @Override
+        public void visitVarInsn(int opcode, int var) {
+            opseq.add(opcode);
+        }
 
-		@Override
-		public void visitTypeInsn(int opcode, String type) {
-			opseq.add("T " + opcode);
-		}
+        @Override
+        public void visitTypeInsn(int opcode, String type) {
+            opseq.add(opcode);
+        }
 
-		@Override
-		public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-			opseq.add("F " + opcode);
-		}
+        @Override
+        public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+            opseq.add(opcode);
+        }
 
-		@Override
-		public void visitMethodInsn(int opcode, String owner, String name, String desc) {
-			opseq.add("M " + opcode);
-		}
+        @Override
+        public void visitMethodInsn(int opcode, String owner, String name, String desc) {
+            opseq.add(opcode);
+        }
 
-		@Override
-		public void visitJumpInsn(int opcode, Label label) {
-			opseq.add("J " + opcode);
-		}
+        @Override
+        public void visitJumpInsn(int opcode, Label label) {
+            opseq.add(opcode);
+        }
 
-		@Override
-		public void visitLabel(Label label) {
-			// opseq.add("L"); // ignore labels
-		}
+        @Override
+        public void visitLabel(Label label) {
+            // opseq.add("L"); // ignore labels
+        }
 
-		@Override
-		public void visitLdcInsn(Object cst) {
-			opseq.add("LDC " + Opcodes.LDC);
-		}
+        @Override
+        public void visitLdcInsn(Object cst) {
+            opseq.add(Opcodes.LDC);
+        }
 
-		@Override
-		public void visitIincInsn(int var, int increment) {
-			opseq.add("II " + Opcodes.IINC);
-		}
+        @Override
+        public void visitIincInsn(int var, int increment) {
+            opseq.add(Opcodes.IINC);
+        }
 
-		@Override
-		public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-			opseq.add("T " + Opcodes.TABLESWITCH);
-		}
+        @Override
+        public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
+            opseq.add(Opcodes.TABLESWITCH);
+        }
 
-		@Override
-		public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
-			opseq.add("LS " + Opcodes.LOOKUPSWITCH);
-		}
+        @Override
+        public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
+            opseq.add(Opcodes.LOOKUPSWITCH);
+        }
 
-		@Override
-		public void visitMultiANewArrayInsn(String desc, int dims) {
-			opseq.add("MA " + Opcodes.MULTIANEWARRAY);
-		}
+        @Override
+        public void visitMultiANewArrayInsn(String desc, int dims) {
+            opseq.add(Opcodes.MULTIANEWARRAY);
+        }
 
-		@Override
-		public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-			// opseq.add("TC"); // ignore try catch
-		}
+        @Override
+        public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+            opseq.add(BytecodeData.MethodData.TRY_CATCH);
+        }
 
-		@Override
-		public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
-			// opseq.add("LV"); // ignore local variables
-		}
+        @Override
+        public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+            opseq.add(Opcodes.INVOKEDYNAMIC);
+        }
 
-		@Override
-		public void visitLineNumber(int line, Label start) {
-		}
+        @Override
+        public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+            // opseq.add("LV"); // ignore local variables
+        }
 
-		@Override
-		public void visitMaxs(int maxStack, int maxLocals) {
-		}
+        @Override
+        public void visitLineNumber(int line, Label start) {
+        }
 
-		@Override
-		public void visitEnd() {
-			parent.endMethod(methodName, opseq);
-		}
-	}
+        @Override
+        public void visitMaxs(int maxStack, int maxLocals) {
+        }
 
-	public static void main(String[] args) throws Exception {
-		File f = new File(args[0]);
-		if (f.isDirectory())
-			recurse(f);
-		else
-			dump(f);
-	}
+        @Override
+        public void visitEnd() {
+            int[] opseq = new int[this.opseq.size()];
+            for (int i = 0; i < opseq.length; i++)
+                opseq[i] = this.opseq.get(i);
+            methodData.setExtOpcodeSeq(opseq);
+        }
+    }
 
-	private static void recurse(File dir) throws Exception {
-		for (File f : dir.listFiles()) {
-			if (!f.getName().startsWith(".") && f.isDirectory())
-				recurse(f);
-			else if (f.getName().endsWith(".class")) {
-				List<Pair<String, String[]>> opseq = dump(f);
-				for (Pair<String, String[]> p : opseq) {
-					System.out.print(p.getLeft());
-					for (String o : p.getRight())
-						System.out.print(" " + o.replaceAll(" ", ""));
-					System.out.println();
-				}
-				System.out.println();
-			}
-		}
-	}
+    public static void main(String[] args) throws Exception {
+        File f = new File(args[0]);
+        if (f.isDirectory())
+            recurse(f);
+        else
+            dump(f);
+    }
 
-	public static List<Pair<String, int[]>> extract(byte[] b) {
-		TheClassVisitor v = new TheClassVisitor();
-		ClassReader cr = new ClassReader(b);
-		cr.accept(v, 0);
-		List<Pair<String, String[]>> opseq = v.getOpSeq();
-		List<Pair<String, int[]>> result = new ArrayList<>(opseq.size());
-		for (Pair<String, String[]> p : opseq) {
-			int[] seq = new int[p.getRight().length];
-			for (int i = 0; i < seq.length; i++) {
-				String s = p.getRight()[i];
-				seq[i] = Integer.valueOf(s.substring(s.indexOf(' ')));
-			}
-			result.add(Pair.of(p.getLeft(), seq));
-		}
-		return result;
-	}
+    private static void recurse(File dir) throws Exception {
+        for (File f : dir.listFiles())
+            if (!f.getName().startsWith(".") && f.isDirectory())
+                recurse(f);
+            else if (f.getName().endsWith(".class"))
+                dump(f);
+    }
 
-	private static List<Pair<String, String[]>> dump(File f) throws Exception {
-		TheClassVisitor v = new TheClassVisitor();
-		ClassReader cr = new ClassReader(new FileInputStream(f));
-		cr.accept(v, 0);
-		return v.getOpSeq();
-	}
+    public static List<BytecodeData> extract(byte[] classBytes) {
+        TheClassVisitor v = new TheClassVisitor();
+        ClassReader cr = new ClassReader(classBytes);
+        cr.accept(v, 0);
+        return v.getBytecodeData();
+    }
+
+    public static List<BytecodeData> extract(File f) throws IOException {
+        TheClassVisitor v = new TheClassVisitor();
+        InputStream is = new FileInputStream(f);
+        ClassReader cr = new ClassReader(is);
+        cr.accept(v, 0);
+        is.close();
+        return v.getBytecodeData();
+    }
+
+    private static void dump(File f) throws Exception {
+        TheClassVisitor v = new TheClassVisitor();
+        InputStream is = new FileInputStream(f);
+        ClassReader cr = new ClassReader(is);
+        cr.accept(v, 0);
+        is.close();
+        for (BytecodeData data : v.getBytecodeData()) {
+            System.out.println(data.getClassName());
+            for (BytecodeData.MethodData method : data.getMethods()) {
+                System.out.print(method.getName());
+                int[] opseq = method.getExtOpcodeSeq();
+                for (int i = 0; i < opseq.length; i++) {
+                    int c = opseq[i];
+                    System.out.print(" " + opcodeLabel(c) + c);
+                }
+                System.out.println();
+            }
+            System.out.println();
+        }
+    }
+
+    private static String opcodeLabel(int c) {
+        String s = "_";
+        if (c <= Opcodes.DCONST_1)
+            s = "_";
+        else if (c <= Opcodes.SIPUSH)
+            s = "I";
+        else if (c <= Opcodes.LDC)
+            s = "LDC";
+        else if (c <= Opcodes.ALOAD)
+            s = "V";
+        else if (c <= Opcodes.ALOAD)
+            s = "_";
+        else if (c <= Opcodes.ASTORE)
+            s = "V";
+        else if (c <= Opcodes.LXOR)
+            s = "_";
+        else if (c <= Opcodes.IINC)
+            s = "II";
+        else if (c <= Opcodes.DCMPG)
+            s = "_";
+        else if (c <= Opcodes.JSR)
+            s = "J";
+        else if (c <= Opcodes.RET)
+            s = "V";
+        else if (c <= Opcodes.TABLESWITCH)
+            s = "TS";
+        else if (c <= Opcodes.LOOKUPSWITCH)
+            s = "LS";
+        else if (c <= Opcodes.RETURN)
+            s = "_";
+        else if (c <= Opcodes.PUTFIELD)
+            s = "F";
+        else if (c <= Opcodes.INVOKEINTERFACE)
+            s = "M";
+        else if (c <= Opcodes.INVOKEDYNAMIC)
+            s = "MD";
+        else if (c <= Opcodes.NEW)
+            s = "T";
+        else if (c <= Opcodes.NEWARRAY)
+            s = "I";
+        else if (c <= Opcodes.ANEWARRAY)
+            s = "T";
+        else if (c <= Opcodes.ATHROW)
+            s = "_";
+        else if (c <= Opcodes.INSTANCEOF)
+            s = "T";
+        else if (c <= Opcodes.MONITOREXIT)
+            s = "_";
+        else if (c <= Opcodes.MULTIANEWARRAY)
+            s = "MA";
+        else if (c <= Opcodes.IFNONNULL)
+            s = "J";
+        else if (c <= BytecodeData.MethodData.TRY_CATCH)
+            s = "TC";
+        else
+            throw new IllegalArgumentException("Unknown opcode: " + c);
+        return s;
+
+    }
 
 }

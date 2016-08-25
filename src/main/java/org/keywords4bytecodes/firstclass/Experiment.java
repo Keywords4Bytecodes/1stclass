@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -273,6 +274,7 @@ public class Experiment {
             List<Map.Entry<String, Double>> entries = new ArrayList<>(predicted.size());
             entries.addAll(predicted.entrySet());
             entries.sort(Map.Entry.<String, Double> comparingByValue());
+            //entries.sort(Entry.comparingByValue());
             String confusor = entries.get(entries.size() - 1).getKey();
 
             int pos = 0;

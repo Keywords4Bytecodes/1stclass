@@ -74,10 +74,10 @@ class FastRandomTree
   protected double m_SplitPoint = Double.NaN;
   
   /** The proportions of training instances going down each branch. */
-  protected double[] m_Prop = null;
+  protected float[] m_Prop = null;
 
   /** Class probabilities from the training vals. */
-  protected double[] m_ClassProbs = null;
+  protected float[] m_ClassProbs = null;
 
   /** The dataset used for training. */
   protected transient DataCache data = null;
@@ -88,7 +88,7 @@ class FastRandomTree
    * distributionSequentialAtt(). This is meant to avoid frequent 
    * creating/destroying of these arrays.
    */
-  protected transient double[] tempProps;  
+  protected transient float[] tempProps;  
   
   /**
    * Since 0.99: holds references to temporary arrays re-used by all nodes
@@ -96,8 +96,8 @@ class FastRandomTree
    * in distributionSequentialAtt(). This is meant to avoid frequent 
    * creating/destroying of these arrays.
    */
-  protected transient double[][] tempDists;  
-  protected transient double[][] tempDistsOther;  
+  protected transient float[][] tempDists;  
+  protected transient float[][] tempDistsOther;  
   
   
 
@@ -197,7 +197,7 @@ class FastRandomTree
   public void run() {
 
     // compute initial class counts
-    double[] classProbs = new double[data.numClasses];
+    float[] classProbs = new float[data.numClasses];
     for (int i = 0; i < data.numInstances; i++) {
       classProbs[data.instClassValues[i]] += data.instWeights[i];
     }
@@ -285,7 +285,10 @@ class FastRandomTree
 
     } else { // =============================================== node is a leaf
 
-      return m_ClassProbs;
+    	double[]result = new double[m_ClassProbs.length];
+    	for(int i=0;i<result.length;i++)
+    		result[i] = m_ClassProbs[i];
+      return result;
 
     }
 
@@ -351,7 +354,10 @@ class FastRandomTree
 
     } else { // =============================================== node is a leaf
 
-      return m_ClassProbs;
+    	double[]result = new double[m_ClassProbs.length];
+    	for(int i=0;i<result.length;i++)
+    		result[i] = m_ClassProbs[i];
+      return result;
 
     }
 
@@ -419,7 +425,7 @@ class FastRandomTree
    * @param depth the current depth
    */
   protected void buildTree(int[][] sortedIndices, int startAt, int endAt,
-          double[] classProbs,
+          float[] classProbs,
           boolean debug,
           int[] attIndicesWindow,
           int depth)  {
@@ -430,7 +436,7 @@ class FastRandomTree
     // Check if node doesn't contain enough instances or is pure 
     // or maximum depth reached, make leaf.
     if ( ( sortedIndicesLength < Math.max(2, getMinNum()) )  // small
-            || Utils.eq( classProbs[Utils.maxIndex(classProbs)], Utils.sum(classProbs) )       // pure
+            || Utils.eq( classProbs[FastRfUtils.maxIndex(classProbs)], FastRfUtils.sum(classProbs) )       // pure
             || ( (getMaxDepth() > 0)  &&  (depth >= getMaxDepth()) )                           // deep
             ) {
       m_Attribute = -1;  // indicates leaf (no useful attribute to split on)
@@ -449,8 +455,8 @@ class FastRandomTree
     
     // new 0.99: all the following are for the best attribute only! they're updated while sequentially through the attributes
     double val = Double.NaN; // value of splitting criterion
-    double[][] dist = new double[2][data.numClasses];  // class distributions (contingency table), indexed first by branch, then by class
-    double[] prop = new double[2]; // the branch sizes (as fraction)
+    float[][] dist = new float[2][data.numClasses];  // class distributions (contingency table), indexed first by branch, then by class
+    float[] prop = new float[2]; // the branch sizes (as fraction)
     double split = Double.NaN;  // split point
 
     // Investigate K random attributes
@@ -911,16 +917,16 @@ class FastRandomTree
    * @param att the attribute index (which one to change)
    * @param sortedIndices the sorted indices of the vals
    */
-  protected double distribution( double[][] props, double[][][] dists,
+  protected double distribution( float[][] props, float[][][] dists,
           int att, int[] sortedIndices ) {
 
     double splitPoint = -Double.MAX_VALUE;
-    double[][] dist = null;  // a contingency table of the split point vs class
+    float[][] dist = null;  // a contingency table of the split point vs class
     int i;  
     
     if ( data.isAttrNominal(att) ) { // ====================== nominal attributes
 
-      dist = new double[data.attNumVals[att]][data.numClasses];
+      dist = new float[data.attNumVals[att]][data.numClasses];
       for (i = 0; i < sortedIndices.length; i++) {
         int inst = sortedIndices[i];
         if ( data.isValueMissing(att, inst) )
@@ -933,8 +939,8 @@ class FastRandomTree
       
     } else { // ============================================ numeric attributes
 
-      double[][] currDist = new double[2][data.numClasses];
-      dist = new double[2][data.numClasses];
+      float[][] currDist = new float[2][data.numClasses];
+      dist = new float[2][data.numClasses];
 
       //begin with moving all instances into second subset
       for (int j = 0; j < sortedIndices.length; j++) {
@@ -1065,16 +1071,16 @@ class FastRandomTree
    * @param startAt Index in sortedIndicesOfAtt; do not touch anything below this index.
    * @param endAt Index in sortedIndicesOfAtt; do not touch anything after this index.
    */
-  protected double distributionSequentialAtt( double[] propsBestAtt, double[][] distsBestAtt,
+  protected double distributionSequentialAtt( float[] propsBestAtt, float[][] distsBestAtt,
           double scoreBestAtt, int attToExamine, int[] sortedIndicesOfAtt, int startAt, int endAt ) {
 
     double splitPoint = -Double.MAX_VALUE;
     
     // a contingency table of the split point vs class. 
-    double[][] dist = this.tempDists;
-    Arrays.fill( dist[0], 0.0 ); Arrays.fill( dist[1], 0.0 );
-    double[][] currDist = this.tempDistsOther;
-    Arrays.fill( currDist[0], 0.0 ); Arrays.fill( currDist[1], 0.0 );
+    float[][] dist = this.tempDists;
+    Arrays.fill( dist[0], 0.0f ); Arrays.fill( dist[1], 0.0f );
+    float[][] currDist = this.tempDistsOther;
+    Arrays.fill( currDist[0], 0.0f ); Arrays.fill( currDist[1], 0.0f );
     //double[][] dist = new double[2][data.numClasses];
     //double[][] currDist = new double[2][data.numClasses];
     
@@ -1254,7 +1260,7 @@ class FastRandomTree
     
     // compute total weights for each branch (= props)
     // again, we reuse the tempProps of the tree not to create/destroy new arrays
-    double[] props = this.tempProps;
+    float[] props = this.tempProps;
     countsToFreqs(dist, props);  // props gets overwritten, previous contents don't matters
     
 
@@ -1300,16 +1306,16 @@ class FastRandomTree
    * instead of counts (stored in "dist"). Creates a new double[] which it 
    * returns.
    */  
-  protected static double[] countsToFreqs( double[][] dist ) {
+  protected static float[] countsToFreqs( float[][] dist ) {
     
-    double[] props = new double[dist.length];
+    float[] props = new float[dist.length];
     
     for (int k = 0; k < props.length; k++) {
-      props[k] = Utils.sum(dist[k]);
+      props[k] = FastRfUtils.sum(dist[k]);
     }
-    if (Utils.eq(Utils.sum(props), 0)) {
+    if (Utils.eq(FastRfUtils.sum(props), 0)) {
       for (int k = 0; k < props.length; k++) {
-        props[k] = 1.0 / (double) props.length;
+        props[k] = 1.0f / (float) props.length;
       }
     } else {
       FastRfUtils.normalize(props);
@@ -1325,14 +1331,14 @@ class FastRandomTree
    * 
    * props.length must be == dist.length.
    */  
-  protected static void countsToFreqs( double[][] dist, double[] props ) {
+  protected static void countsToFreqs( float[][] dist, float[] props ) {
     
     for (int k = 0; k < props.length; k++) {
-      props[k] = Utils.sum(dist[k]);
+      props[k] = FastRfUtils.sum(dist[k]);
     }
-    if (Utils.eq(Utils.sum(props), 0)) {
+    if (Utils.eq(FastRfUtils.sum(props), 0)) {
       for (int k = 0; k < props.length; k++) {
-        props[k] = 1.0 / (double) props.length;
+        props[k] = 1.0f / (float) props.length;
       }
     } else {
       FastRfUtils.normalize(props);
@@ -1347,7 +1353,7 @@ class FastRandomTree
    * @param distFrom
    * @param distTo Gets overwritten.
    */
-  protected static void copyDists( double[][] distFrom, double[][] distTo ) {
+  protected static void copyDists( float[][] distFrom, float[][] distTo ) {
     for ( int i = 0; i < distFrom[0].length; i++ ) {
       distTo[0][i] = distFrom[0][i];
     }

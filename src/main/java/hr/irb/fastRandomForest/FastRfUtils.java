@@ -144,6 +144,24 @@ public class FastRfUtils {
     }
     normalize(doubles, sum);
   }
+  
+  /**
+   * Normalizes the floats in the array by their sum.
+   * <p/>
+   * If supplied an array full of zeroes, does not modify the array.
+   *
+   * @param floats the array of float
+   *
+   * @throws IllegalArgumentException if sum is NaN
+   */
+  public static void normalize(float[] floats) {
+
+    double sum = 0;
+    for (int i = 0; i < floats.length; i++) {
+      sum += floats[i];
+    }
+    normalize(floats, sum);
+  }
 
 
   /**
@@ -166,6 +184,29 @@ public class FastRfUtils {
     }
     for (int i = 0; i < doubles.length; i++) {
       doubles[i] /= sum;
+    }
+  }
+
+  /**
+   * Normalizes the floatsin the array using the given value.
+   * <p/>
+   * If supplied an array full of zeroes, does not modify the array.
+   *
+   * @param floats the array of float
+   * @param sum     the value by which the doubles are to be normalized
+   *
+   * @throws IllegalArgumentException if sum is zero or NaN
+   */
+  private static void normalize(float[] floats, double sum) {
+
+    if (Double.isNaN(sum)) {
+      throw new IllegalArgumentException("Can't normalize array. Sum is NaN.");
+    }
+    if (sum == 0) {
+      return;
+    }
+    for (int i = 0; i < floats.length; i++) {
+      floats[i] /= sum;
     }
   }
 
@@ -233,5 +274,44 @@ public class FastRfUtils {
     if (data.classIndex() == -1)
       data.setClassIndex(data.numAttributes() - 1);
     return data;
+  }
+  
+  /**
+   * Returns index of maximum element in a given array of floats. First maximum
+   * is returned.
+   * 
+   * @param floats the array of floats
+   * @return the index of the maximum element
+   */
+  public static/* @pure@ */int maxIndex(float[] floats) {
+
+    float maximum = 0;
+    int maxIndex = 0;
+
+    for (int i = 0; i < floats.length; i++) {
+      if ((i == 0) || (floats[i] > maximum)) {
+        maxIndex = i;
+        maximum = floats[i];
+      }
+    }
+
+    return maxIndex;
+  }
+  
+
+  /**
+   * Computes the sum of the elements of an array of float.
+   * 
+   * @param floats the array of float
+   * @return the sum of the elements
+   */
+  public static/* @pure@ */float sum(float[] floats) {
+
+    float sum = 0;
+
+    for (float d : floats) {
+      sum += d;
+    }
+    return sum;
   }
 }

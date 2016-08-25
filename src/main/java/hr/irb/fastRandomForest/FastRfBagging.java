@@ -116,13 +116,13 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
       curTree.m_MotherForest = motherForest;
       // 0.99: reference to these arrays will get passed down all nodes so the array can be re-used 
       // 0.99: this array is of size two as now all splits are binary - even categorical ones
-      curTree.tempProps = new double[2]; 
-      curTree.tempDists = new double[2][]; 
-      curTree.tempDists[0] = new double[data.numClasses()];
-      curTree.tempDists[1] = new double[data.numClasses()];
-      curTree.tempDistsOther = new double[2][]; 
-      curTree.tempDistsOther[0] = new double[data.numClasses()];
-      curTree.tempDistsOther[1] = new double[data.numClasses()];
+      curTree.tempProps = new float[2]; 
+      curTree.tempDists = new float[2][]; 
+      curTree.tempDists[0] = new float[data.numClasses()];
+      curTree.tempDists[1] = new float[data.numClasses()];
+      curTree.tempDistsOther = new float[2][]; 
+      curTree.tempDistsOther[0] = new float[data.numClasses()];
+      curTree.tempDistsOther[1] = new float[data.numClasses()];
       m_Classifiers[i] = curTree;
     }
 

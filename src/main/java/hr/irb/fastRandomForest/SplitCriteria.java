@@ -47,7 +47,7 @@ public class SplitCriteria {
    * @param matrix the contingency table
    * @return the conditional entropy of the columns given the rows
    */
-  public static double entropyConditionedOnRows(double[][] matrix) {
+  public static double entropyConditionedOnRows(float[][] matrix) {
 
     double returnValue = 0, sumForBranch;
     //double total = 0;
@@ -81,7 +81,7 @@ public class SplitCriteria {
    * @param matrix the contingency table
    * @return the columns' entropy
    */
-  public static double entropyOverColumns(double[][] matrix) {
+  public static double entropyOverColumns(float[][] matrix) {
     
     //return ContingencyTables.entropyOverColumns(matrix);
     

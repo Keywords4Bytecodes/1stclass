@@ -44,8 +44,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -56,6 +56,51 @@
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<!-- to use: mvn package appassembler:assemble -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>appassembler-maven-plugin</artifactId>
+				<version>1.10</version>
+				<configuration>
+					<!-- Set the target configuration directory to be used in the bin scripts -->
+					<configurationDirectory>conf</configurationDirectory>
+					<!-- Copy the contents from "/src/main/config" to the target configuration 
+						directory in the assembled application -->
+					<copyConfigurationDirectory>true</copyConfigurationDirectory>
+					<!-- Include the target configuration directory in the beginning of 
+						the classpath declaration in the bin scripts -->
+					<includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
+					<!-- Extra JVM arguments that will be included in the bin scripts -->
+					<extraJvmArguments></extraJvmArguments>
+					<!-- Generate bin scripts for windows and unix pr default -->
+					<platforms>
+						<platform>unix</platform>
+					</platforms>
+					<programs>
+						<program>
+							<mainClass>org.keywords4bytecodes.firstclass.VocabularyInducer</mainClass>
+							<id>vocabulary-inducer</id>
+							<commandLineArguments>
+							</commandLineArguments>
+						</program>
+						<program>
+							<mainClass>org.keywords4bytecodes.firstclass.Experiment</mainClass>
+							<id>experiment-trainer</id>
+							<commandLineArguments>
+							<commandLineArgument>train</commandLineArgument>
+							</commandLineArguments>
+						</program>
+						<program>
+							<mainClass>org.keywords4bytecodes.firstclass.Experiment</mainClass>
+							<id>experiment-tester</id>
+							<commandLineArguments>
+							<commandLineArgument>test</commandLineArgument>
+							</commandLineArguments>
+						</program>
+					</programs>
 				</configuration>
 			</plugin>
 		</plugins>

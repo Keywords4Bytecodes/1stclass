@@ -101,6 +101,7 @@ public class Experiment {
 
 		while (e != null) {
 			if (e.getName().endsWith(".class")) {
+			    if(e.getSize()>0){
 				byte[] bytes = new byte[(int) e.getSize()];
 				int off = 0;
 				while (off < bytes.length) {
@@ -112,6 +113,7 @@ public class Experiment {
 				}
 
 				all.addAll(BytecodeToSequence.extract(bytes));
+			    }
 			}
 
 			e = zip.getNextEntry();

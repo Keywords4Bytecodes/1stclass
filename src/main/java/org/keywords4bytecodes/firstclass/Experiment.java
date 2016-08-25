@@ -359,6 +359,24 @@ public class Experiment {
 			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(args[2])));
 			oos.writeObject(system);
 			oos.close();
+		} else if (args[0].equals("fulltrain")) {
+			String[] terms = new String[] { "add", "clone", "next", "contains", "values", "compare", "hash", "to", "is",
+					"set", "value", "equals", "get", "jj" };
+			
+			RandomForestSystem system = new RandomForestSystem(29, 250);
+			TermVocabulary vocab = new TermVocabulary(terms);
+			System.out.println("Number of terms: " + vocab.size());
+			Experiment exp = new Experiment(system, vocab);
+			exp.addData(new File(args[1]), DataType.TRAIN);
+			System.out.println("Training data size: " + exp.getTrainData().size());
+
+			System.out.println("Training started: " + new Date());
+			exp.train();
+			System.out.println("Training ended: " + new Date());
+
+			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(args[2])));
+			oos.writeObject(system);
+			oos.close();
 		} else if (args[0].equals("test")) {
 			ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(args[2])));
 			FirstClassSystem system = (FirstClassSystem) ois.readObject();

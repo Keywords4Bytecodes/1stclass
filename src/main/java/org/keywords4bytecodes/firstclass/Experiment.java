@@ -12,7 +12,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -338,32 +337,19 @@ public class Experiment {
 
 	public static void main(String[] args) throws Exception {
 
-		if (args[0].equals("train")) {
-			String[] terms = new String[] { "run", "convert", "tight", "put", "find", "create", "has", "write",
-					"generate", "add", "init", "new", "read", "test", "is", "handle", "check", "execute", "contains",
-					"size", "loose", "reset", "evaluate", "hash", "next", "jj", "compare", "values", "update", "remove",
-					"load", "get", "end", "copy", "make", "value", "close", "process", "set", "start", "clear", "parse",
-					"build", "equals", "clone", "visit", "to", "initialize", "append" };
+		if (args[0].equals("train") || args[0].equals("fulltrain") || args[0].equals("baseline")
+				|| args[0].equals("fullbaseline")) {
+			String[] terms = args[0].equals("train") || args[0].equals("baseline")
+					? new String[] { "run", "convert", "tight", "put", "find", "create", "has", "write", "generate",
+							"add", "init", "new", "read", "test", "is", "handle", "check", "execute", "contains",
+							"size", "loose", "reset", "evaluate", "hash", "next", "jj", "compare", "values", "update",
+							"remove", "load", "get", "end", "copy", "make", "value", "close", "process", "set", "start",
+							"clear", "parse", "build", "equals", "clone", "visit", "to", "initialize", "append" }
+					: new String[] { "add", "clone", "next", "contains", "values", "compare", "hash", "to", "is", "set",
+							"value", "equals", "get", "jj" };
 
-			RandomForestSystem system = new RandomForestSystem(29, 250);
-			TermVocabulary vocab = new TermVocabulary(terms);
-			System.out.println("Number of terms: " + vocab.size());
-			Experiment exp = new Experiment(system, vocab);
-			exp.addData(new File(args[1]), DataType.TRAIN);
-			System.out.println("Training data size: " + exp.getTrainData().size());
-
-			System.out.println("Training started: " + new Date());
-			exp.train();
-			System.out.println("Training ended: " + new Date());
-
-			ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(args[2])));
-			oos.writeObject(system);
-			oos.close();
-		} else if (args[0].equals("fulltrain")) {
-			String[] terms = new String[] { "add", "clone", "next", "contains", "values", "compare", "hash", "to", "is",
-					"set", "value", "equals", "get", "jj" };
-			
-			RandomForestSystem system = new RandomForestSystem(29, 250);
+			FirstClassSystem system = args[0].equals("train") || args[0].equals("fulltrain")
+					? new RandomForestSystem(29, 250) : new NaiveBayesSystem();
 			TermVocabulary vocab = new TermVocabulary(terms);
 			System.out.println("Number of terms: " + vocab.size());
 			Experiment exp = new Experiment(system, vocab);

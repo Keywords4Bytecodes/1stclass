@@ -102,6 +102,20 @@
 						</program>
 						<program>
 							<mainClass>org.keywords4bytecodes.firstclass.Experiment</mainClass>
+							<id>experiment-baseline</id>
+							<commandLineArguments>
+								<commandLineArgument>baseline</commandLineArgument>
+							</commandLineArguments>
+						</program>
+						<program>
+							<mainClass>org.keywords4bytecodes.firstclass.Experiment</mainClass>
+							<id>experiment-full-baseline</id>
+							<commandLineArguments>
+								<commandLineArgument>fulltrain</commandLineArgument>
+							</commandLineArguments>
+						</program>
+						<program>
+							<mainClass>org.keywords4bytecodes.firstclass.Experiment</mainClass>
 							<id>experiment-tester</id>
 							<commandLineArguments>
 								<commandLineArgument>test</commandLineArgument>

@@ -427,12 +427,14 @@ public class Experiment {
 			for (String term : sortedTerms) {
 				System.out.print(term);
 				Table t = results.tableFor(term);
-				System.out.print("\t" + t.tp + "\t" + t.fn + "\t" + t.fp + "\t" + t.f1() + "\t" + t.precision() + "\t"
-						+ t.recall());
-				double[] rec = results.recallAtThresholdFor(term);
-				if (rec != null)
+				if(t!=null){
+				    System.out.print("\t" + t.tp + "\t" + t.fn + "\t" + t.fp + "\t" + t.f1() + "\t" + t.precision() + "\t"
+						     + t.recall());
+				    double[] rec = results.recallAtThresholdFor(term);
+				    if (rec != null)
 					for (double recAt : rec)
-						System.out.print("\t" + recAt);
+					    System.out.print("\t" + recAt);
+				}
 				System.out.println();
 			}
 		} else {

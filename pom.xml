@@ -100,6 +100,13 @@
 							<commandLineArgument>test</commandLineArgument>
 							</commandLineArguments>
 						</program>
+						<program>
+							<mainClass>org.keywords4bytecodes.firstclass.Experiment</mainClass>
+							<id>experiment-obfuscated-tester</id>
+							<commandLineArguments>
+							<commandLineArgument>obftest</commandLineArgument>
+							</commandLineArguments>
+						</program>
 					</programs>
 				</configuration>
 			</plugin>

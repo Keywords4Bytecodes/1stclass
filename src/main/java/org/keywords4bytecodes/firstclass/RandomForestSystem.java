@@ -107,6 +107,7 @@ public class RandomForestSystem implements FirstClassSystem {
 
         frf = new FastRandomForest();
         frf.setSeed(1993);
+        // frf.setMaxDepth(20);
         // frf.setNumThreads(1);
         frf.setNumTrees(numTrees);
         frf.buildClassifier(trainset);

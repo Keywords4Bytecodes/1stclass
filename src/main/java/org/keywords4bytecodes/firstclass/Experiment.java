@@ -2,13 +2,19 @@ package org.keywords4bytecodes.firstclass;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -53,15 +59,14 @@ public class Experiment {
         if (_type == DataType.TEST || _type == DataType.BOTH)
             this.testData.add(Pair.of(term, data));
     }
-    
+
     public List<Pair<String, BytecodeData.MethodData>> getTrainData() {
         return trainData;
     }
-    
+
     public List<Pair<String, BytecodeData.MethodData>> getTestData() {
         return testData;
     }
-    
 
     public void addData(File f, DataType _type) throws IOException {
         addData(new TrainData(loadFile(f), vocab), _type);
@@ -226,13 +231,16 @@ public class Experiment {
 
     public static class Results {
         Map<String, Table> termTable;
-        
+
+        Map<String, int[]> recAtThr;
+
         private Table totalTable;
 
         public static final String TOTAL = "TOTAL";
 
         public Results() {
             this.termTable = new HashMap<String, Table>();
+            this.recAtThr = new HashMap<String, int[]>();
             this.totalTable = new Table();
             termTable.put(TOTAL, this.totalTable);
         }
@@ -240,9 +248,22 @@ public class Experiment {
         public Table totals() {
             return termTable.get(TOTAL);
         }
-        
+
         public Table tableFor(String term) {
             return termTable.get(term);
+        }
+
+        public double[] recallAtThresholdFor(String term) {
+            int[] rec = this.recAtThr.get(term);
+
+            if (rec == null)
+                return null;
+
+            double[] result = new double[rec.length];
+            double norm = 1.0 / rec[rec.length - 1];
+            for (int i = 0; i < rec.length; i++)
+                result[i] = rec[i] * norm;
+            return result;
         }
 
         public void tally(String target, Map<String, Double> predicted) {
@@ -254,10 +275,23 @@ public class Experiment {
             entries.sort(Map.Entry.<String, Double> comparingByValue());
             String confusor = entries.get(entries.size() - 1).getKey();
 
-            if (target.equals(confusor)){
+            int pos = 0;
+            boolean recalled = false;
+            if (!recAtThr.containsKey(target))
+                recAtThr.put(target, new int[entries.size()]);
+            int[] rec = recAtThr.get(target);
+            while (entries.size() - pos - 1 >= 0) {
+                if (entries.get(entries.size() - pos - 1).getKey().equals(target))
+                    recalled = true;
+                if (recalled)
+                    rec[pos]++;
+                pos++;
+            }
+
+            if (target.equals(confusor)) {
                 targetTable.tp++;
                 totalTable.tp++;
-            }else {
+            } else {
                 targetTable.fn++;
                 totalTable.fn++;
                 totalTable.fp++;
@@ -267,8 +301,6 @@ public class Experiment {
                 Table confusorTable = termTable.get(confusor);
                 confusorTable.fp++;
             }
-
-            // TODO rec@N
         }
     }
 
@@ -300,4 +332,64 @@ public class Experiment {
             return (2.0 * prec * rec / (prec + rec));
         }
     }
+
+    public static void main(String[] args) throws Exception {
+
+        String[] terms = new String[] { "run", "convert", "tight", "put", "find", "create", "has", "write", "generate",
+                "add", "init", "new", "read", "test", "is", "handle", "check", "execute", "contains", "size", "loose",
+                "reset", "evaluate", "hash", "next", "jj", "compare", "values", "update", "remove", "load", "get",
+                "end", "copy", "make", "value", "close", "process", "set", "start", "clear", "parse", "build",
+                "equals", "clone", "visit", "to", "initialize", "append" };
+
+        if (args[0].equals("train")) {
+            RandomForestSystem system = new RandomForestSystem(29, 250);
+            TermVocabulary vocab = new TermVocabulary(terms);
+            System.out.println("Number of terms: " + vocab.size());
+            Experiment exp = new Experiment(system, vocab);
+            exp.addData(new File(args[1]), DataType.TRAIN);
+            System.out.println("Training data size: " + exp.getTrainData().size());
+
+            System.out.println("Training started: " + new Date());
+            exp.train();
+            System.out.println("Training ended: " + new Date());
+
+            ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(args[2])));
+            oos.writeObject(system);
+            oos.close();
+        } else if (args[0].equals("test")) {
+            ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(args[2])));
+            FirstClassSystem system = (FirstClassSystem) ois.readObject();
+            ois.close();
+            System.out.println("Read system " + system.getClass().getName());
+            TermVocabulary vocab = system.vocab();
+            System.out.println("Number of terms: " + vocab.size());
+
+            Experiment exp = new Experiment(system, vocab);
+            exp.addData(new File(args[1]), DataType.TEST);
+            System.out.println("Testing data size: " + exp.getTestData().size());
+
+            System.out.println("Testing started: " + new Date());
+            Results results = exp.test();
+            System.out.println("Testing ended: " + new Date());
+            List<String> sortedTerms = new ArrayList<>(vocab.size());
+            sortedTerms.addAll(vocab.terms());
+            Collections.sort(sortedTerms);
+
+            for (String term : sortedTerms) {
+                System.out.print(term);
+                Table t = results.tableFor(term);
+                System.out.print("\t" + t.tp + "\t" + t.fn + "\t" + t.fp + "\t" + t.f1() + "\t" + t.precision() + "\t"
+                        + t.recall());
+                double[] rec = results.recallAtThresholdFor(term);
+                if (rec != null)
+                    for (double recAt : rec)
+                        System.out.print("\t" + recAt);
+                System.out.println();
+            }
+        } else {
+            System.err.println("Unknown task: " + args[0]);
+        }
+
+    }
+
 }

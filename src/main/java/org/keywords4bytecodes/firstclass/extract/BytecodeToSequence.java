@@ -16,6 +16,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
 
 public class BytecodeToSequence {
 
@@ -236,6 +237,12 @@ public class BytecodeToSequence {
         ClassReader cr = new ClassReader(is);
         cr.accept(v, 0);
         is.close();
+        return v.getBytecodeData();
+    }
+
+    public static List<BytecodeData> extract(ClassNode classNode) {
+        TheClassVisitor v = new TheClassVisitor();
+        classNode.accept(v);
         return v.getBytecodeData();
     }
 

@@ -231,12 +231,18 @@ public class BytecodeToSequence {
     }
 
     public static List<BytecodeData> extract(File f) throws IOException {
-        TheClassVisitor v = new TheClassVisitor();
-        InputStream is = new FileInputStream(f);
-        ClassReader cr = new ClassReader(is);
-        cr.accept(v, 0);
-        is.close();
-        return v.getBytecodeData();
+	try{
+	    TheClassVisitor v = new TheClassVisitor();
+	    InputStream is = new FileInputStream(f);
+	    ClassReader cr = new ClassReader(is);
+	    cr.accept(v, 0);
+	    is.close();
+	    return v.getBytecodeData();
+	}catch(Exception e){
+	    System.err.println(f);
+	    e.printStackTrace();
+	    return new ArrayList<BytecodeData>();
+	}
     }
 
     private static void dump(File f) throws Exception {

@@ -16,6 +16,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
 
 public class BytecodeToSequence {
 
@@ -243,6 +244,12 @@ public class BytecodeToSequence {
 	    e.printStackTrace();
 	    return new ArrayList<BytecodeData>();
 	}
+    }
+
+    public static List<BytecodeData> extract(ClassNode classNode) {
+        TheClassVisitor v = new TheClassVisitor();
+        classNode.accept(v);
+        return v.getBytecodeData();
     }
 
     private static void dump(File f) throws Exception {

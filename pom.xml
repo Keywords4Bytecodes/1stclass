@@ -4,7 +4,7 @@
 
 	<groupId>org.keywords4bytecodes</groupId>
 	<artifactId>firstclass</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
+	<version>0.0.4-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>firstclass</name>
@@ -74,7 +74,7 @@
 						the classpath declaration in the bin scripts -->
 					<includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
 					<!-- Extra JVM arguments that will be included in the bin scripts -->
-					<extraJvmArguments></extraJvmArguments>
+					<extraJvmArguments>-Xmx30G</extraJvmArguments>
 					<!-- Generate bin scripts for windows and unix pr default -->
 					<platforms>
 						<platform>unix</platform>

@@ -1,5 +1,7 @@
 package org.keywords4bytecodes.firstclass;
 
+import java.io.File;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -69,6 +71,25 @@ public class TrainData {
 
     public List<Pair<String, BytecodeData.MethodData>> data() {
         return data;
+    }
+
+    /**
+     * Utility to size a corpus
+     */
+    public static void main(String[] args) throws Exception {
+	List<BytecodeData> data = Experiment.loadFile(new File(args[0]));
+	int methodCount = 0;
+	int instCount = 0;
+	for(BytecodeData bd : data){
+	    for(BytecodeData.MethodData md: bd.getMethods()){
+		methodCount++;
+		instCount += md.size();
+	    }
+	}
+	System.out.println("For folder: " + args[0]);
+	System.out.println("Total number of classes: " + data.size());
+	System.out.println("Total number of methods: " + methodCount);
+	System.out.println("Total number of instructions: " + instCount);
     }
 
 }

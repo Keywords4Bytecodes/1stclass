@@ -124,8 +124,9 @@ public class Experiment {
 	}
 
 	public static List<BytecodeData> loadClass(File f) throws IOException {
-		return BytecodeToSequence.extract(f);
-	}
+		try{return BytecodeToSequence.extract(f);
+	} catch(Exception e) { return new ArrayList<>(); }
+}
 
 	public void addObfuscatedData(File clearFile, File obfuscatedFile, DataType _type) throws IOException {
 		addData(new TrainData(loadObfuscatedFiles(clearFile, obfuscatedFile), vocab), _type);
@@ -351,7 +352,7 @@ public class Experiment {
 							"value", "equals", "get", "jj" };
 
 			FirstClassSystem system = args[0].equals("train") || args[0].equals("fulltrain")
-					? new RandomForestSystem(29, 250) : new NaiveBayesSystem();
+					? new RandomForestSystem(29,100) : new NaiveBayesSystem();
 			TermVocabulary vocab = new TermVocabulary(terms);
 			System.out.println("Number of terms: " + vocab.size());
 			Experiment exp = new Experiment(system, vocab);
